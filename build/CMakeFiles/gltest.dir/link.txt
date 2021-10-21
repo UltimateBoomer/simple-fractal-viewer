@@ -1,0 +1,1 @@
+/bin/x86_64-linux-gnu-g++-9  -g   CMakeFiles/gltest.dir/src/main.cpp.o  -o gltest  -lGL -lglfw -lGLEW 

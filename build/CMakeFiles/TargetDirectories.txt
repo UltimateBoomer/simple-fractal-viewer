@@ -1,0 +1,6 @@
+/home/steven/vscode/gltest/build/CMakeFiles/edit_cache.dir
+/home/steven/vscode/gltest/build/CMakeFiles/package_source.dir
+/home/steven/vscode/gltest/build/CMakeFiles/rebuild_cache.dir
+/home/steven/vscode/gltest/build/CMakeFiles/package.dir
+/home/steven/vscode/gltest/build/CMakeFiles/copy-files.dir
+/home/steven/vscode/gltest/build/CMakeFiles/fractal_viewer.dir

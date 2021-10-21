@@ -1,0 +1,7 @@
+[
+{
+  "directory": "/home/steven/vscode/gltest/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9    -g   -std=gnu++2a -o CMakeFiles/fractal_viewer.dir/src/main.cpp.o -c /home/steven/vscode/gltest/src/main.cpp",
+  "file": "/home/steven/vscode/gltest/src/main.cpp"
+}
+]
