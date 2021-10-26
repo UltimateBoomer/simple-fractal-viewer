@@ -4,6 +4,7 @@
 #include <cmath>
 #include <sstream>
 #include <iomanip>
+#include <deque>
 
 #define GLEW_STATIC
 #define GLFW_INCLUDE_NONE
@@ -47,71 +48,125 @@ const GLfloat visual_vert[] = {
     0.0f,
 };
 
-int w = 512, h = 512;
-int fps_limit = 60;
-int iter = 10000;
-int rw = w, rh = h;
+struct transform
+{
+    glm::vec2 pos = glm::vec2(0.0f);
+    float scale = 2.0f;
+};
+
+// int w = 512, h = 512;
+unsigned int fps_limit = 60;
+unsigned int iter = 10000;
+int rw = 512, rh = 512;
 int cx = 0, cy = 0;
-glm::vec2 pos;
-float s;
+transform current_tf;
 float hue = 0.0f;
+transform pinned_tfs[10];
+bool pinned_tf_enabled[10];
+std::deque<transform> undo_tfs;
+// std::deque<transform>::iterator undo_tfs_i = undo_tfs.begin();
 
 bool redraw = true;
+bool resize = true;
 bool redraw_color = true;
+
+void update_tf()
+{
+    undo_tfs.push_back(current_tf);
+    redraw = true;
+}
 
 void reset_tf()
 {
-    pos = glm::vec2(0.0f);
-    s = 2.0f;
+    update_tf();
+    current_tf = transform();
+}
+
+void undo_tf()
+{
+    if (undo_tfs.size())
+    {
+        current_tf = undo_tfs.back();
+        undo_tfs.pop_back();
+        redraw = true;
+    }
 }
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
     if (action == GLFW_PRESS)
     {
+        float dd = mods & GLFW_MOD_SHIFT ? 0.5f : mods & GLFW_MOD_CONTROL ? 0.02f : 0.1f;
+        float sm = mods & GLFW_MOD_SHIFT ? 2.0f : mods & GLFW_MOD_CONTROL ? std::pow(2.0f, 0.25) : std::sqrt(2.0f);
+        // Exit
         if (key == GLFW_KEY_ESCAPE)
         {
             glfwSetWindowShouldClose(window, true);
         }
+        // Movement
         else if (key == GLFW_KEY_LEFT)
         {
-            pos.x -= 0.1f * s;
+            current_tf.pos.x -= dd * current_tf.scale;
             redraw = true;
         }
         else if (key == GLFW_KEY_RIGHT)
         {
-            pos.x += 0.1f * s;
-            redraw = true;
+            update_tf();
+            current_tf.pos.x += dd * current_tf.scale;
         }
         else if (key == GLFW_KEY_UP)
         {
-            pos.y += 0.1f * s;
-            redraw = true;
+            update_tf();
+            current_tf.pos.y += dd * current_tf.scale;
         }
         else if (key == GLFW_KEY_DOWN)
         {
-            pos.y -= 0.1f * s;
-            redraw = true;
+            update_tf();
+            current_tf.pos.y -= dd * current_tf.scale;
         }
+        // Zoom
         else if (key == GLFW_KEY_Z)
         {
-            s /= std::sqrt(2.0f);
-            redraw = true;
+            update_tf();
+            current_tf.scale /= sm;
         }
         else if (key == GLFW_KEY_X)
         {
-            s *= std::sqrt(2.0f);
-            redraw = true;
+            update_tf();
+            current_tf.scale *= sm;
         }
+        // Reset transform
         else if (key == GLFW_KEY_R)
         {
             reset_tf();
-            redraw = true;
         }
+        // Change color
         else if (key == GLFW_KEY_T)
         {
             hue = std::fmod(hue + 0.1f, 1.0f);
             redraw_color = true;
+        }
+        // Bookmarks
+        else if (key >= GLFW_KEY_0 && key <= GLFW_KEY_9)
+        {
+            int i = key - GLFW_KEY_0;
+            if (mods & GLFW_MOD_CONTROL)
+            {
+                pinned_tfs[i] = current_tf;
+                pinned_tf_enabled[i] = true;
+                std::cout << "Saved bookmark " << i << std::endl;
+            }
+            else if (pinned_tf_enabled[i])
+            {
+                update_tf();
+                current_tf = pinned_tfs[i];
+                std::cout << "Loaded bookmark " << i << std::endl;
+            }
+        }
+        // Undo
+        else if (key == GLFW_KEY_C)
+        {
+            undo_tf();
         }
     }
 }
@@ -120,6 +175,14 @@ void cursor_callback(GLFWwindow *window, double x, double y)
 {
     cx = x;
     cy = y;
+}
+
+void window_resize_callback(GLFWwindow *window, int width, int height)
+{
+    rw = width;
+    rh = height;
+    redraw = true;
+    resize = true;
 }
 
 void precise_sleep(double seconds)
@@ -164,7 +227,7 @@ int main()
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    GLFWwindow *window = glfwCreateWindow(w, h, "", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(rw, rh, "", NULL, NULL);
     glfwMakeContextCurrent(window);
 
     auto glew_e = glewInit();
@@ -177,6 +240,7 @@ int main()
     glfwSetInputMode(window, GLFW_STICKY_KEYS, false);
     glfwSetCursorPosCallback(window, cursor_callback);
     glfwSetKeyCallback(window, key_callback);
+    glfwSetWindowSizeCallback(window, window_resize_callback);
     glfwSwapInterval(1);
 
     GLuint va;
@@ -194,21 +258,6 @@ int main()
 
     GLuint draw_tex;
     glGenTextures(1, &draw_tex);
-
-    glBindTexture(GL_TEXTURE_2D, draw_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, draw_tex, 0);
-
-    GLenum dbl[] = {GL_COLOR_ATTACHMENT0};
-    glDrawBuffers(1, dbl);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-    {
-        std::cerr << "Framebuffer incomplete" << std::endl;
-    }
 
     GLuint visual_vb;
     glGenBuffers(1, &visual_vb);
@@ -237,10 +286,30 @@ int main()
 
             glViewport(0, 0, rw, rh);
 
+            if (resize)
+            {
+                glBindTexture(GL_TEXTURE_2D, draw_tex);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, rw, rh, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, 0);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+                glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, draw_tex, 0);
+
+                GLenum dbl[] = {GL_COLOR_ATTACHMENT0};
+                glDrawBuffers(1, dbl);
+
+                if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+                {
+                    std::cerr << "Framebuffer incomplete" << std::endl;
+                }
+
+                resize = false;
+            }
+
             glm::mat3 draw_tf = glm::identity<glm::mat3>();
             float draw_s = (float)rh / rw;
-            draw_tf = glm::translate(draw_tf, pos);
-            draw_tf = glm::scale(draw_tf, glm::vec2(s, s * draw_s));
+            draw_tf = glm::translate(draw_tf, current_tf.pos);
+            draw_tf = glm::scale(draw_tf, glm::vec2(current_tf.scale, current_tf.scale * draw_s));
 
             glClear(GL_COLOR_BUFFER_BIT);
 
@@ -249,7 +318,7 @@ int main()
             glBindBuffer(GL_ARRAY_BUFFER, draw_vb);
 
             glUniformMatrix3fv(draw_tf_u, 1, GL_FALSE, glm::value_ptr(draw_tf));
-            glUniform1i(iterations_u, iter);
+            glUniform1ui(iterations_u, iter);
 
             glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), (void *)0);
             glEnableVertexAttribArray(0);
@@ -258,7 +327,7 @@ int main()
 
             glDisableVertexAttribArray(0);
 
-            // update_time = true;
+            
         }
 
         if (redraw || redraw_color)
@@ -295,8 +364,9 @@ int main()
             double t = glfwGetTime();
             double dt = t - tp;
 
+            glm::vec2 p0 = current_tf.pos - glm::vec2(current_tf.scale / 2, current_tf.scale / 2 * rh / rw), p1 = current_tf.pos + glm::vec2(current_tf.scale / 2, current_tf.scale / 2 * rh / rw);
             std::stringstream title_ss;
-            title_ss << "Test - " << iter << " iterations - " << std::setprecision(3) << dt << "s";
+            title_ss << std::setprecision(3) << "Fractal - [(" <<  p0[0] << ", " << p0[1] << "), (" << p1[0] << ", " << p1[1] << ")] - " << iter << " iterations - " << dt << "s";
             glfwSetWindowTitle(window, title_ss.str().c_str());
 
             redraw = false;

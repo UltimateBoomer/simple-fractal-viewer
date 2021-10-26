@@ -4,7 +4,7 @@ in vec2 uv;
 
 out vec3 color;
 
-uniform sampler2D tex;
+uniform usampler2D tex;
 uniform float hue;
 
 vec3 hsv2rgb(vec3 c) {
@@ -15,5 +15,6 @@ vec3 hsv2rgb(vec3 c) {
 
 void main()
 {
-    color = texture(tex, uv).xxx * hsv2rgb(vec3(hue, 1.0f, 1.0f));
+  uint d = texture(tex, uv).r;
+  color = log(d) / 12.0 * hsv2rgb(vec3(hue, 1.0f, 1.0f));
 }
