@@ -377,6 +377,7 @@ int main()
             redraw_color = false;
         }
 
+        // Update
         glfwPollEvents();
 
         double t = glfwGetTime();
@@ -390,8 +391,6 @@ int main()
         t = glfwGetTime();
         dt = t - tp;
         tp = t;
-
-        // hue = std::fmod(hue + dt / 20.0f, 1.0f);
     }
     std::cout << "Window closed" << std::endl;
 }

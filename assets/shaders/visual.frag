@@ -16,5 +16,5 @@ vec3 hsv_to_rgb(vec3 c) {
 void main()
 {
   uint d = texture(tex, uv).r;
-  color = log(d) / 12.0 * hsv_to_rgb(vec3(hue, 1.0f, 1.0f));
+  color = 0.75 * hsv_to_rgb(vec3(hue + log(d), 1.0f, 1.0f));
 }

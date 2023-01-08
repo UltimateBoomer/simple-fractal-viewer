@@ -12,8 +12,8 @@
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
 
-// Create shader program with vertex shader and fragment shader
-GLuint load_shaders(std::string vert_file, std::string frag_file)
+/// Create shader program with vertex shader and fragment shader.
+inline GLuint load_shaders(std::string vert_file, std::string frag_file)
 {
     GLuint vert_id = glCreateShader(GL_VERTEX_SHADER);
     GLuint frag_id = glCreateShader(GL_FRAGMENT_SHADER);
