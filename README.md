@@ -2,6 +2,8 @@
 
 This application renders the Mandelbrot fractal using OpenGL shaders.
 
+![](screenshot.png?raw=true)
+
 # Features
 
 ## Moving
