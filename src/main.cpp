@@ -54,7 +54,6 @@ struct transform
     float scale = 2.0f;
 };
 
-// int w = 512, h = 512;
 unsigned int fps_limit = 60;
 unsigned int iter = 10000;
 int rw = 512, rh = 512;
@@ -64,7 +63,6 @@ float hue = 0.0f;
 transform pinned_tfs[10];
 bool pinned_tf_enabled[10];
 std::deque<transform> undo_tfs;
-// std::deque<transform>::iterator undo_tfs_i = undo_tfs.begin();
 
 bool redraw = true;
 bool resize = true;
@@ -185,6 +183,7 @@ void window_resize_callback(GLFWwindow *window, int width, int height)
     resize = true;
 }
 
+/// Accurately sleep for the specified time.
 void precise_sleep(double seconds)
 {
     static double estimate = 5e-3;
@@ -218,6 +217,8 @@ int main()
 {
     std::cout << "OpenGL Fractal Viewer" << std::endl;
     glewExperimental = true;
+
+    // Initialize GLFW
 
     if (!glfwInit())
     {
@@ -275,10 +276,12 @@ int main()
     reset_tf();
 
     double tp = glfwGetTime();
+    // Rendering loop
     while (!glfwWindowShouldClose(window))
     {
         glfwGetFramebufferSize(window, &rw, &rh);
-        // bool update_time = false;
+        
+        // Only redraw the fractal if there is a change to the parameters.
         if (redraw)
         {
             // Calculate fractal
@@ -330,6 +333,7 @@ int main()
             
         }
 
+        // Redraw colors without redrawing the fractal
         if (redraw || redraw_color)
         {
             // Draw on screen
